@@ -1,5 +1,6 @@
 [
   { "file": "schade_fuer_sie.mp3", "title": "Schade für sie" },
   { "file": "charakter.mp3", "title": "Nur der Charakter zählt!" },
-  { "file": "was_wird.mp3", "title": "Was wird" }
+  { "file": "was_wird.mp3", "title": "Was wird" },
+  { "file": "bitte_helfen_sie_mir", "title": "Bitte helfen Sie mir, ich bin in Gefahr" }
 ]
