@@ -38,14 +38,12 @@
       text-align: center;
       transition: background 0.15s, transform 0.1s, border-color 0.15s;
       user-select: none;
+      color: #fff;
     }
 
-    .sound-btn:hover {
-      background: #333;
-      border-color: #888;
-    }
+    .sound-btn:hover { background: #333; border-color: #888; }
 
-    .sound-btn:active, .sound-btn.playing {
+    .sound-btn.playing {
       background: #1db954;
       border-color: #1db954;
       transform: scale(0.96);
@@ -55,124 +53,55 @@
     .sound-btn .emoji { font-size: 2rem; display: block; margin-bottom: 8px; }
     .sound-btn .label { font-size: 0.85rem; font-weight: 600; }
 
-    .add-section {
-      max-width: 900px;
-      margin: 32px auto 0;
-      background: #1a1a1a;
-      border: 2px dashed #444;
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .add-section h2 { font-size: 1rem; margin-bottom: 14px; color: #aaa; }
-
-    .add-section input, .add-section select {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      background: #222;
-      border: 1px solid #555;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 0.9rem;
-    }
-
-    .add-section button {
-      width: 100%;
-      padding: 10px;
-      background: #1db954;
-      color: #000;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .add-section button:hover { background: #17a349; }
-
-    .hint {
-      max-width: 900px;
-      margin: 18px auto 0;
-      font-size: 0.78rem;
-      color: #666;
+    #status {
       text-align: center;
-      line-height: 1.6;
+      margin-top: 40px;
+      color: #666;
+      font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
 
 <h1>🔊 Soundboard</h1>
-
 <div class="grid" id="grid"></div>
-
-<!-- Sound hinzufügen -->
-<div class="add-section">
-  <h2>➕ Neuen Sound hinzufügen</h2>
-  <input type="text" id="newLabel" placeholder="Name des Sounds (z. B. „Oh no")" />
-  <input type="text" id="newEmoji" placeholder="Emoji (z. B. 😱)" maxlength="4" />
-  <input type="text" id="newUrl" placeholder="URL zur Audiodatei (.mp3 / .ogg / .wav)" />
-  <button onclick="addSound()">Sound hinzufügen</button>
-</div>
-
-<p class="hint">
-  💡 Tipp: Hoste die Audiodateien z. B. auf <strong>Google Drive</strong> (direkter Download-Link), 
-  <strong>GitHub</strong> oder einem Webserver.<br>
-  Für Alexa-Nutzung: Alexa kann keine eigenen Browser-Tabs öffnen – nutze stattdessen 
-  einen <strong>Bluetooth-Lautsprecher</strong> oder einen freigegebenen Tab im Netzwerk.
-</p>
+<p id="status">Sounds werden geladen…</p>
 
 <script>
-  // Sounds hier eintragen – URL durch echte Audiodatei-URLs ersetzen
-  const defaultSounds = [
-    { label: "Oh no", emoji: "😱", url: "sounds/ohno.mp3" },
-    { label: "Rizz", emoji: "😎", url: "sounds/rizz.mp3" },
-    { label: "It's Corn!", emoji: "🌽", url: "sounds/corn.mp3" },
-    { label: "Slay", emoji: "💅", url: "sounds/slay.mp3" },
-    { label: "NPC vibes", emoji: "🤖", url: "sounds/npc.mp3" },
-    { label: "Bing Bong", emoji: "🔔", url: "sounds/bingbong.mp3" },
-  ];
+  async function init() {
+    let sounds;
+    try {
+      const res = await fetch("sounds.json");
+      if (!res.ok) throw new Error("sounds.json nicht gefunden");
+      sounds = await res.json();
+    } catch (e) {
+      document.getElementById("status").textContent = "⚠️ sounds.json nicht gefunden.";
+      return;
+    }
 
-  let sounds = [...defaultSounds];
-
-  function save() { /* kein persistenter Speicher in dieser Umgebung */ }
-
-  function render() {
     const grid = document.getElementById("grid");
-    grid.innerHTML = "";
-    sounds.forEach((s, i) => {
+    document.getElementById("status").textContent = "";
+
+    sounds.forEach(s => {
+      // Dateiname ohne Endung als Titel, falls kein label angegeben
+      const label = s.title || s.file.replace(/\.[^.]+$/, "");
+      const emoji = s.emoji || "🔊";
+      const url   = "sounds/" + s.file;
+
       const btn = document.createElement("button");
       btn.className = "sound-btn";
-      btn.innerHTML = `<span class="emoji">${s.emoji || "🔊"}</span><span class="label">${s.label}</span>`;
-      btn.onclick = () => playSound(s.url, btn);
+      btn.innerHTML = `<span class="emoji">${emoji}</span><span class="label">${label}</span>`;
+      btn.onclick = () => {
+        const audio = new Audio(url);
+        btn.classList.add("playing");
+        audio.play().catch(e => alert("Fehler: " + e.message));
+        audio.onended = () => btn.classList.remove("playing");
+      };
       grid.appendChild(btn);
     });
   }
 
-  function playSound(url, btn) {
-    if (!url) {
-      alert("Keine Audio-URL hinterlegt. Bitte URL im Quellcode oder über „Sound hinzufügen" eintragen.");
-      return;
-    }
-    const audio = new Audio(url);
-    btn.classList.add("playing");
-    audio.play().catch(e => alert("Fehler beim Abspielen: " + e.message));
-    audio.onended = () => btn.classList.remove("playing");
-  }
-
-  function addSound() {
-    const label = document.getElementById("newLabel").value.trim();
-    const emoji = document.getElementById("newEmoji").value.trim();
-    const url   = document.getElementById("newUrl").value.trim();
-    if (!label) return alert("Bitte einen Namen eingeben.");
-    sounds.push({ label, emoji: emoji || "🔊", url });
-    save();
-    render();
-    ["newLabel","newEmoji","newUrl"].forEach(id => document.getElementById(id).value = "");
-  }
-
-  render();
+  init();
 </script>
 </body>
 </html>
