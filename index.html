@@ -72,7 +72,7 @@
   async function init() {
     let sounds;
     try {
-      const res = await fetch("sounds/sounds.json");
+      const res = await fetch("sounds.json");
       if (!res.ok) throw new Error("sounds.json nicht gefunden");
       sounds = await res.json();
     } catch (e) {
